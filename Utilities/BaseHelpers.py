@@ -75,12 +75,12 @@ class BaseHelper:
     def verify_page_url(self, expected_url_fragment: str, description: str = "page", timeout: int = 10000):
         """Verify the page URL contains the expected fragment."""
         try:
-            print(f"🌍  Verifying {description} URL ...")
+            print(f"🌍 Verifying {description} URL ...")
             self.page.wait_for_url(f"**{expected_url_fragment}**", timeout=timeout)
             actual_url = self.page.url
 
             if expected_url_fragment in actual_url:
-                print(f"🏆  {description} URL verification passed! ✅")
+                print(f"🏆 {description} URL verification passed! ✅")
                 print(f"Actual URL: '{actual_url}'")
             else:
                 raise AssertionError(
@@ -91,51 +91,17 @@ class BaseHelper:
 
         except Exception as e:
             self.take_screenshot(f"URL_Verification_Failed_{description.replace(' ', '_')}")
-            error_msg = f"❌ Test failed — {description} URL verification failed: {e}"
-            print(error_msg)
-            raise AssertionError(error_msg)
-
-    # ---------------------------------------------------------------
-    # User Verification
-    # ---------------------------------------------------------------
-    def verify_user_in_all_users(self, username: str, description: str = "'All Users list'", timeout: int = 10000):
-        """Verify that a specific user appears in the 'All Users' list."""
-        print(f"🔍  Verifying if user '{username}' is listed under {description}...")
-        try:
-            user_locator = self.page.locator(
-                f'//div[contains(@class,"admin-grid-item")]//p[normalize-space(text())="{username}"]'
+            # Include expected/actual URL in the exception if possible
+            actual_url = getattr(self.page, "url", "N/A")  # fallback if page.url not available
+            error_msg = (
+                f"❌ Test failed — {description} URL verification failed: {e}\n"
+                f"Expected fragment (url to be): '{expected_url_fragment}'\n"
+                f"Actual URL: '{actual_url}'"
             )
-            user_locator.wait_for(state="visible", timeout=timeout)
-            print(f"✅ User '{username}' is visible in {description}.")
-
-        except Exception as e:
-            self.take_screenshot(f"UserNotFound_{username}")
-            error_msg = f"❌ Test failed — User '{username}' not found in {description}: {e}"
             print(error_msg)
             raise AssertionError(error_msg)
 
-    def verify_user_status_toggle(self, username: str, description: str = "'User Status Toggle'", timeout: int = 10000):
-        """
-        Verify whether the given user's status toggle is enabled (Active) or disabled (Inactive).
-        """
-        print(f"🔍  Verifying user status toggle for '{username}' under {description}...")
-        try:
-            toggle_locator = self.page.locator(
-                f'//p[normalize-space()="{username}"]/ancestor::div[contains(@class,"admin-grid-item")]//input[@aria-label="User Status"]'
-            )
 
-            toggle_locator.wait_for(state="attached", timeout=timeout)
-            is_checked = toggle_locator.is_checked()
 
-            if is_checked:
-                print(f"🔴 User '{username}' status is Active (toggle ON).")
-                return "Active"
-            else:
-                print(f"🔴 User '{username}' status is Disabled (toggle OFF).")
-                return "Disabled"
 
-        except Exception as e:
-            self.take_screenshot(f"ToggleCheckFailed_{username}")
-            error_msg = f"❌ Test failed — Unable to verify toggle for '{username}': {e}"
-            print(error_msg)
-            raise AssertionError(error_msg)
+
