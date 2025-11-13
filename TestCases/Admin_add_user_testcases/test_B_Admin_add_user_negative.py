@@ -75,7 +75,7 @@ class Test_002_Admin_Add_User_Negative_cases:
         admin_nav.enter_department("QA")
         admin_nav.enter_email("existingemp@yopmail.com")
         admin_nav.enter_login_id("unique_login_id_00552")
-        password_util.enter_password("123")
+        password_util.enter_password()
 
         duplicate_emp_no = "E02"  # 🔁 Known duplicate
         admin_nav.enter_employee_number(duplicate_emp_no)

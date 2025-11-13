@@ -30,6 +30,8 @@ class Admin_Add_User_Locators:
         # Role selection dropdown to assign access level to the user
         self.dropdown_role = page.locator('ng-select[formcontrolname="role"]')
 
+        self.verify_role =page.locator("//ng-select[@formcontrolname='role']//span[contains(@class,'ng-value-label')]")
+
         # 🔹 Toggle / Checkbox
         # Send Welcome Mail Toggle
         self.send_welcome_mail_container = page.locator(
@@ -88,6 +90,14 @@ class Admin_Add_User_Locators:
         # Search bar for filtering users in the user list/grid
         self.search_box = page.locator("#search-user-grid-records")
 
+        # To Import the user
+        self.btn_import = page.locator('//button[.//span[normalize-space()="Import"]]')
+
+        # To upload a file
+        self.input_upload_file = page.locator('//input[@type="file" and @id="file"]')
+
+        # To click the upload button
+        self.btn_upload = page.locator('//button[normalize-space()="Upload"]')
 
         #Lookup page locators
         # Click the employees lookup

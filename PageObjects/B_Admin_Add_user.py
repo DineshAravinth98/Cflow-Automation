@@ -2,6 +2,8 @@ from playwright.sync_api import Page, Locator, TimeoutError as PlaywrightTimeout
 from Utilities.BaseHelpers import BaseHelper
 from Locators.Locators_Admin_Add_User import Admin_Add_User_Locators
 from Locators.Locators_Common import Common_Locators
+import pandas as pd
+from playwright.sync_api import expect
 import random
 import string
 import re
@@ -92,7 +94,7 @@ class AdminNavigationAndAddUser:
             print(f"➡ Selecting role: '{role}'")
 
             # Step 1️⃣ - Open dropdown before *each* selection
-            self.helper.click(self.locators.dropdown_role, "Roles dropdown (open before selecting)")
+            self.helper.click(self.locators.dropdown_role, "Roles dropdown")
             self.page.wait_for_timeout(500)
 
             # Step 2️⃣ - Wait for dropdown to appear
@@ -276,6 +278,7 @@ class AdminNavigationAndAddUser:
     def click_Active_Users_radio_(self):
         """Clicks the 'Active Users' radio button."""
         self.locators.radio_btn_active_users.click(force=True)
+
 
     # Click 'Update' button in Reset Password for the user
     def click_update(self):
@@ -986,3 +989,205 @@ class VerifyUserInEmployeesLookup:
                 print(f"✅ {key} matches: '{actual_value}'")
 
         print("\n🎯 All employee details correctly reflected in Employee Lookup table.")
+
+class ImportUserFromExcel:
+
+    def __init__(self, page: Page, helper: BaseHelper):
+        self.page = page
+        self.helper = helper
+        self.locators = Admin_Add_User_Locators(page)
+        self.common = Common_Locators(page)
+
+    # To Import the users
+    def click_import(self):
+        self.helper.click(self.locators.btn_import, "Import button on the page")
+
+    # To upload a file
+    def upload_file(self, file_path):
+        self.helper.upload_file(self.locators.input_upload_file, file_path, "Excel file upload field")
+
+    # To click the upload button
+    def click_upload(self):
+        """
+        Clicks the Upload button and validates success, error, or duplicate user popups.
+        Handles SweetAlert2 (swal2) info dialogs, toast messages, and ensures proper assertions.
+        Checks toast message first, then validates Import Summary popup if it appears.
+        """
+        self.helper.click(self.locators.btn_upload, "Upload button")
+
+        # --- Step 1: Check for Toast message first ---
+        # --- Step 1: Check for Toast message first ---
+        toast = self.page.locator("#toast-container div, #toast-container span").first
+
+        try:
+            toast.wait_for(state="visible", timeout=8000)
+            message = " ".join(toast.inner_text().strip().split())
+            print(f"💬 Toast detected after upload: '{message}'")
+
+            # --- Handle toast types ---
+            if re.search(r"(error|failed|invalid)", message, re.IGNORECASE):
+                screenshot_path = self.helper.take_screenshot("UploadErrorToast")
+                pytest.fail(f"❌ Upload failed: {message}. Screenshot: {screenshot_path}", pytrace=False)
+
+            elif re.search(r"already\s*exists|duplicate", message, re.IGNORECASE):
+                screenshot_path = self.helper.take_screenshot("UploadDuplicateToast")
+                pytest.fail(f"⚠️ Duplicate data found: {message}. Screenshot: {screenshot_path}", pytrace=False)
+
+            elif re.search(r"success|imported\s*\d+\s*users?", message, re.IGNORECASE):
+                print(f"✅ Upload successful based on toast: {message}")
+                # ✅ No screenshot needed for success
+
+            else:
+                screenshot_path = self.helper.take_screenshot("UploadUnknownToast")
+                pytest.fail(f"⚠️ Unexpected toast message: {message}. Screenshot: {screenshot_path}", pytrace=False)
+
+        except PlaywrightTimeoutError:
+            # ✅ No toast appeared — treat as success without further checks
+            print("ℹ️ No toast appeared after clicking Upload.")
+
+        except Exception as e:
+            print(f"⚠️ Unexpected error while handling upload toast: {e}")
+            screenshot_path = self.helper.take_screenshot("UnexpectedUploadToastError")
+            pytest.fail(f"⚠️ Unexpected error during toast validation: {e}. Screenshot: {screenshot_path}",
+                        pytrace=False)
+        # --- Step 2: Handle Import Summary popup (if shown) ---
+        popup = self.page.locator('//div[contains(@class,"swal2-popup") and contains(@class,"swal2-show")]')
+        popup_html_container = self.page.locator('//div[@id="swal2-html-container"]').first
+        popup_ok_button = self.page.locator('//button[contains(@class,"swal2-confirm")]')
+
+        try:
+            popup.wait_for(state="visible", timeout=5000)
+            print("✅ SweetAlert2 Import Summary popup appeared.")
+
+            raw_html = popup_html_container.inner_html().strip()
+            clean_text = re.sub(r"<[^>]+>", "", raw_html)
+            clean_text = " ".join(clean_text.split())
+            print(f"ℹ️ Popup text detected: {clean_text}")
+
+            screenshot_path = self.helper.take_screenshot("ImportSummaryPopup")
+
+            # --- Validate Import Summary ---
+            if re.search(r"import\s+summary", clean_text, re.IGNORECASE):
+                print(f"✅ Import Summary detected: {clean_text}")
+
+                if re.search(r"found\s+\d+\s+existing\s+user", clean_text, re.IGNORECASE):
+                    pytest.fail(
+                        f"❌ Import Summary indicates existing user(s): {clean_text}. "
+                        f"Screenshot: {screenshot_path}",
+                        pytrace=False
+                    )
+                else:
+                    print("🎉 Import Summary confirmed without existing users.")
+            else:
+                pytest.fail(
+                    f"⚠️ Unexpected popup content: {clean_text}. Screenshot: {screenshot_path}",
+                    pytrace=False
+                )
+
+
+
+        except PlaywrightTimeoutError:
+            print("ℹ️ No 'Import Summary' popup detected — continuing...")
+
+        except Exception as e:
+            print(f"⚠️ Error while handling 'Import Summary' popup: {e}")
+            self.helper.take_screenshot("PopupHandlingError")
+
+    def verify_imported_users_from_excel(self, excel_path: str):
+        """
+        Verifies each imported user's details from Excel against the data in the application.
+        Uses existing locators for field validation (name, email, login ID, etc.)
+        """
+        try:
+            df = pd.read_excel(excel_path)
+            print(f"📄 Loaded {len(df)} users from Excel for verification.\n")
+
+            for index, row in df.iterrows():
+                name = str(row["Name"]).strip()
+                login_id = str(row["Login ID"]).strip()
+                email = str(row["Email"]).strip()
+                role = str(row["Role"]).strip()
+                whatsapp = str(row["WhatsApp Number"]).strip()
+                emp_no = str(row["Employee Number"]).strip()
+                dept = str(row["Department"]).strip()
+
+                print(f"🔍 Verifying imported user: {name}")
+
+                # Step 1️⃣: Search user
+                search_box = self.page.locator('//input[@id="search-user-grid-records"]')
+                search_box.wait_for(state="visible", timeout=5000)
+                search_box.fill(name)
+                self.page.keyboard.press("Enter")
+                self.page.wait_for_timeout(2000)
+
+                # Step 2️⃣: Open user record
+                user_card = self.page.locator(f'//p[normalize-space()="{name}"]')
+                expect(user_card).to_be_visible(timeout=5000)
+                user_card.click()
+                self.page.wait_for_timeout(2000)
+
+                # Step 3️⃣: Validate form fields
+                field_map = {
+                    "Name": self.locators.txt_name,
+                    "Login ID": self.locators.txt_login_id,
+                    "Email": self.locators.txt_email,
+                    "Role": self.locators.verify_role,
+                    "WhatsApp Number": self.locators.whatsapp_input,
+                    "Employee Number": self.locators.txt_employee_number,
+                    "Department": self.locators.txt_department,
+                }
+
+                expected_values = {
+                    "Name": name,
+                    "Login ID": login_id,
+                    "Email": email,
+                    "Role": role,
+                    "WhatsApp Number": whatsapp,
+                    "Employee Number": emp_no,
+                    "Department": dept,
+                }
+
+                for label, locator in field_map.items():
+                    try:
+                        locator.wait_for(state="visible", timeout=5000)
+
+                        # Try to get value intelligently
+                        tag_name = locator.evaluate("el => el.tagName.toLowerCase()")
+                        actual_value = ""
+
+                        if tag_name == "input" or tag_name == "textarea":
+                            actual_value = locator.input_value().strip()
+                        else:
+                            # For ng-select, span, div, or any wrapper element
+                            try:
+                                actual_value = locator.inner_text().strip()
+                            except Exception:
+                                actual_value = locator.text_content().strip()
+
+                        expected_value = expected_values[label]
+                        if actual_value != expected_value:
+                            screenshot = self.helper.take_screenshot(f"Mismatch_{login_id}_{label}")
+                            raise AssertionError(
+                                f"❌ {label} mismatch for {login_id}: "
+                                f"Expected '{expected_value}', Found '{actual_value}'. Screenshot: {screenshot}"
+                            )
+
+                        print(f"✅ {label} matches: {actual_value}")
+
+                    except Exception as e:
+                        screenshot = self.helper.take_screenshot(f"VerifyFieldError_{login_id}_{label}")
+                        raise AssertionError(f"❌ Error verifying {label} for {login_id}: {e}. Screenshot: {screenshot}")
+
+                print(f"🎯 Verification completed for '{name}'\n")
+
+                # Step 4️⃣: Go back to list
+                back_button = self.page.locator("//a[@aria-label='Close']")
+                if back_button.is_visible():
+                    back_button.click()
+                    self.page.wait_for_timeout(1500)
+
+            print("✅ All imported users verified successfully!")
+
+        except Exception as e:
+            screenshot_path = self.helper.take_screenshot("VerifyImportedUsersFailed")
+            raise AssertionError(f"❌ Failed to verify imported users: {e}. Screenshot: {screenshot_path}")

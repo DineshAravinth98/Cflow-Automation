@@ -53,6 +53,22 @@ class BaseHelper:
             print(error_msg)
             raise AssertionError(error_msg)
 
+    def upload_file(self, locator, file_path, description="File upload field", timeout: int = 5000):
+        """Upload a file using a file input element and stop test on failure."""
+        try:
+            element = self.page.locator(locator) if isinstance(locator, str) else locator
+            element.wait_for(state="visible", timeout=timeout)
+            element.set_input_files(file_path)
+            print(f"✅ File '{file_path}' successfully uploaded using {description}")
+
+        except Exception as e:
+            screenshot_path = self.take_screenshot(f"UploadFailed_{description.replace(' ', '_')}")
+            error_msg = (
+                f"❌ Test failed — Unable to upload file using {description}: {e}\n"
+                f"📸 Screenshot captured at: {screenshot_path}"
+            )
+            print(error_msg)
+            raise AssertionError(error_msg)
 
     def scroll_to_label(self, locator, friendly_name: str = None, timeout: int = 5000):
         """
