@@ -11,7 +11,12 @@ class Common_Locators:
         # Sidebar link to open the Admin section
         self.side_nav_admin = page.get_by_role("link", name="Admin")
 
+        self.side_nav_lookup = page.get_by_role("link", name="Lookups")
+
 
     # Admin Page Navigation Method
     def navigate_to_admin(self):
         self.helper.click(self.side_nav_admin, "Admin-side navigation link")
+
+    def navigate_to_lookup(self):
+        self.helper.click(self.side_nav_lookup, "Lookup-side navigation link")

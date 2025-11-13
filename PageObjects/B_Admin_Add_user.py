@@ -1,112 +1,92 @@
-from playwright.sync_api import Page
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
+from playwright.sync_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
+from Utilities.BaseHelpers import BaseHelper
+from Locators.Locators_Admin_Add_User import Admin_Add_User_Locators
+from Locators.Locators_Common import Common_Locators
 import random
 import string
 import re
 import pytest
-from Utilities.BaseHelpers import BaseHelper
 import time
-from playwright.sync_api import Locator
 
-class Admin_Add_User:
-    def __init__(self, page: Page, timeout: int = 30):
+
+class AdminNavigationAndAddUser:
+    def __init__(self, page: Page, helper: BaseHelper):
         self.page = page
-        self.timeout = timeout
-        self.helper = BaseHelper(page)
+        self.helper = helper
+        self.locators = Admin_Add_User_Locators(page)
+        self.common = Common_Locators(page)
 
-        # ---------------- Locators ----------------
-        self.side_nav_admin = page.get_by_role("link", name="Admin")
-        self.btn_add_user = page.get_by_role("button", name="Add User")
-        self.txt_name = page.locator('input[formcontrolname="name"]')
-        self.txt_department = page.locator('input[formcontrolname="department"]')
-        self.txt_email = page.locator('input[formcontrolname="email"]')
-        self.txt_login_id = page.locator('input[formcontrolname="loginId"]')
-        self.txt_password = page.locator('input[formcontrolname="password"]')
-        self.txt_employee_number = page.locator('input[formcontrolname="empNo"]')
-        self.dropdown_role = page.locator('ng-select[formcontrolname="role"]')
-        self.label_locator = page.locator('//label[normalize-space(text())="Send welcome mail to the user?"]')
-        self.toggle_send_mail = page.locator(
-            "(//label[@id='flexCheckDefault' and contains(@class,'switch')]/span[@class='slider'])[2]"
-        )
-        self.btn_save = page.locator('//button[normalize-space(text())="Save"]')
-        self.country_code_input = page.locator('//div[contains(@class, "d-flex")]/input[@placeholder="+91"]')
-        self.whatsapp_input = page.locator('//div[contains(@class, "d-flex")]/input[@formcontrolname="whatsappNo"]')
-        self.radio_btn_all_users = page.locator('//label[.//span[normalize-space()="All Users"]]')
-        self.radio_btn_active_users = page.locator('//label[.//span[normalize-space()="Active Users"]]')
-        self.toast_message = page.locator("//div[contains(@id,'toast-container')]")
-        self.reset_password_link = page.locator("//a[contains(@class, 'footer-icon') and contains(@class, 'txt-primary')]")
-        self.new_password_input = page.locator(
-            '//label[normalize-space(text())="New Password"]/following-sibling::input[@type="password"]'
-        )
-        self.btn_update = page.locator(
-            "//button[@type='button' and contains(@class, 'button-primary') and normalize-space()='Update']")
+    # Navigate to Admin Page
+    def go_to_admin(self):
+        # Call the method from Common_Locators
+        self.common.navigate_to_admin()
 
-    # ---------------- Random helpers ----------------
+    # Click Add User button to add a new user
+    def click_add_user(self):
+        self.helper.click(self.locators.btn_add_user, "Add User button in the Admin page")
+
+    # Generate a random string of lowercase letters
     @staticmethod
     def random_string(length=6):
         return ''.join(random.choice(string.ascii_lowercase) for _ in range(length))
 
-    @staticmethod
-    def random_email():
-        return f"{Admin_Add_User.random_string(6)}@yopmail.com"
-
-    @staticmethod
-    def random_login_id():
-        return f"user_{Admin_Add_User.random_string(5)}"
-
-    @staticmethod
-    def random_employee_number():
-        return str(random.randint(1000, 9999))
-
-    # ---------------- Actions ----------------
-    def navigate_to_admin(self):
-        print("➡ Navigating to Admin page")
-        self.helper.click(self.side_nav_admin, "Admin side navigation link")
-
-    def click_add_user(self):
-        self.helper.click(self.btn_add_user, "Add User button in the Admin page")
-
     def enter_name(self, name=None):
         if not name:
             name = f"User_{self.random_string(5)}"
-        self.helper.enter_text(self.txt_name, name, "Name textbox")
+        self.helper.enter_text(self.locators.txt_name, name, "Name textbox")
         return name
 
+    # Enter Department name
     def enter_department(self, dept):
-        self.helper.enter_text(self.txt_department, dept, "Department textbox")
+        self.helper.enter_text(self.locators.txt_department, dept, "Department textbox")
+
+    # Generate a random email address
+    @staticmethod
+    def random_email():
+        return f"{AdminNavigationAndAddUser.random_string(6)}@yopmail.com"
 
     def enter_email(self, email=None):
         if not email:
             email = self.random_email()
 
-        # ✅ Validate email format
         pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not re.match(pattern, email):
             print(f"❌ Invalid email format: '{email}'")
             pytest.fail(f"Invalid Email Format: {email}", pytrace=False)
 
-        self.helper.enter_text(self.txt_email, email, "Email textbox")
+        self.helper.enter_text(self.locators.txt_email, email, "Email textbox")
+
+    # Generate a random Login ID
+    @staticmethod
+    def random_login_id():
+        return f"user_{AdminNavigationAndAddUser.random_string(5)}"
 
     def enter_login_id(self, login_id=None):
         if not login_id:
             login_id = self.random_login_id()
 
         print(f"🔑 Entering Login ID: {login_id}")
-        self.helper.enter_text(self.txt_login_id, login_id, "Login ID textbox")
+        self.helper.enter_text(self.locators.txt_login_id, login_id, "Login ID textbox")
         print(f"✅ Login ID entered successfully: {login_id}")
         return login_id
+
+    # Generate an Employee Number
+    @staticmethod
+    def random_employee_number():
+        return str(random.randint(1000, 9999))
 
     def enter_employee_number(self, emp_no=None):
         if not emp_no:
             emp_no = self.random_employee_number()
-        self.helper.enter_text(self.txt_employee_number, emp_no, "Employee Number textbox")
+        self.helper.enter_text(self.locators.txt_employee_number, emp_no, "Employee Number textbox")
 
+    # Select Roles from dropdown
     def select_role(self, roles):
         if isinstance(roles, str):
             roles = [roles]
 
         print(f"🎯 Selecting roles: {roles}")
-        self.helper.click(self.dropdown_role, "Roles dropdown")
+        self.helper.click(self.locators.dropdown_role, "Roles dropdown")
         self.page.wait_for_timeout(1000)
 
         for role in roles:
@@ -118,161 +98,176 @@ class Admin_Add_User:
                     print(f"✅ Selected role: '{role}'")
                 else:
                     print(f"⚠️ Role '{role}' not found.")
+                    self.helper.take_screenshot(prefix=f"RoleNotFound_{role}")
+                    pytest.fail(f"❌ Role '{role}' not found in dropdown")
             except Exception as e:
                 print(f"❌ Error selecting role '{role}': {e}")
+                self.helper.take_screenshot(prefix=f"ErrorSelecting_{role}")
+                pytest.fail(f"❌ Exception occurred while selecting role '{role}': {e}")
             self.page.wait_for_timeout(500)
 
+    # Generate whatsapp number with country code
     def enter_whatsapp_number(self, country_code="91", whatsapp_no="9876543210"):
-        self.helper.enter_text(self.country_code_input, country_code, "Country code input")
-        self.helper.enter_text(self.whatsapp_input, whatsapp_no, "WhatsApp number input")
+        self.helper.enter_text(self.locators.country_code_input, country_code, "Country code input")
+        self.helper.enter_text(self.locators.whatsapp_input, whatsapp_no, "WhatsApp number input")
 
+
+    # Enable 'Send welcome mail to the user?' toggle
     def enable_send_welcome_mail(self):
-        container = self.page.locator(
-            '//div[@class="item" and .//label[contains(text(),"Send welcome mail to the user?")]]'
-        )
-        checkbox = container.locator('input[formcontrolname="sendMail"]')
-        slider = container.locator('span.slider')
+        container = self.locators.send_welcome_mail_container
+        checkbox = self.locators.send_welcome_mail_checkbox
+        slider = self.locators.send_welcome_mail_slider
 
         container.wait_for(state="visible", timeout=5000)
         self.helper.scroll_to_label(container, "'Send welcome mail to the user?' toggle")
 
-        is_checked = checkbox.evaluate("el => el.checked")
-        if not is_checked:
-            slider.click(force=True)
-            self.page.wait_for_timeout(300)
+        try:
+            is_checked = checkbox.evaluate("el => el.checked")
+            if not is_checked:
+                slider.click(force=True)
+                self.page.wait_for_timeout(300)
 
-        is_checked = checkbox.evaluate("el => el.checked")
-        if is_checked:
-            print("✔ 'Send welcome mail to the user?' toggle enabled")
-        else:
-            print("❌ Failed to enable 'Send welcome mail to the user?' toggle")
+            is_checked = checkbox.evaluate("el => el.checked")
+            if is_checked:
+                print("✔ 'Send welcome mail to the user?' toggle enabled")
+            else:
+                print("❌ Failed to enable 'Send welcome mail to the user?' toggle")
+                self.helper.take_screenshot(prefix="SendWelcomeMailFailed")
+        except Exception as e:
+            print(f"❌ Error while enabling toggle: {e}")
+            self.helper.take_screenshot(prefix="SendWelcomeMailError")
 
+    # disable 'Status' toggle
     def disable_user_status_toggle(self):
-        # Locate the container div based on the label text
-        container = self.page.locator(
-            '//div[@class="item" and .//label[contains(text(),"Status")]]'
-        )
-        checkbox = container.locator('input[formcontrolname="status"]')
-        slider = container.locator('span.slider')
+        container = self.locators.user_status_container
+        checkbox = self.locators.user_status_checkbox
+        slider = self.locators.user_status_slider
 
-        # Wait for container to be visible
         container.wait_for(state="visible", timeout=5000)
         self.helper.scroll_to_label(container, "'Status' toggle")
 
-        # Check if the toggle is currently checked
-        is_checked = checkbox.evaluate("el => el.checked")
+        try:
+            is_checked = checkbox.evaluate("el => el.checked")
 
-        # If it is checked (enabled), click the slider to disable
-        if is_checked:
-            slider.click(force=True)
-            self.page.wait_for_timeout(300)
+            if is_checked:
+                slider.click(force=True)
+                self.page.wait_for_timeout(300)
 
-        # Verify the toggle is now disabled
-        is_checked = checkbox.evaluate("el => el.checked")
-        if not is_checked:
-            print("✔ 'Status' toggle disabled")
-        else:
-            print("❌ Failed to disable 'Status' toggle")
+            is_checked = checkbox.evaluate("el => el.checked")
+            if not is_checked:
+                print("✔ 'Status' toggle disabled")
+            else:
+                print("❌ Failed to disable 'Status' toggle")
+                self.helper.take_screenshot(prefix="StatusToggleFailed")
+        except Exception as e:
+            print(f"❌ Error while disabling 'Status' toggle: {e}")
+            self.helper.take_screenshot(prefix="StatusToggleError")
 
+    # Click Reset Password link/icon
     def click_reset_password(self):
         """
         Clicks the reset password icon/link in the Admin page.
         """
         self.helper.click(
-            self.reset_password_link,
+            self.locators.reset_password_link,
             "Reset Password icon/link"
         )
 
+    # To Search User in Admin Page
+    def search_user(self, username: str, timeout: int = 5000):
+        try:
+            print(f"\n 🔍  Searching for user '{username}' in the Active Users page...")
+            self.locators.search_box.wait_for(state="visible", timeout=timeout)
+            self.locators.search_box.fill("")  # clear old value
+            self.locators.search_box.fill(username)  # type username
+            self.page.keyboard.press("Enter")  # trigger search
+            self.page.wait_for_timeout(1500)  # wait for list refresh
+            print(f"✅ User '{username}' search completed.")
+        except Exception as e:
+            self.helper.take_screenshot(f"SearchUserFailed_{username}")
+            error_msg = f"❌ Failed to search user '{username}': {e}"
+            print(error_msg)
+            raise AssertionError(error_msg)
+
+    # Click User in All Users page to open user details
+    def click_user_in_All_Users_page(self, username: str, description: str = "'All Users list'", timeout: int = 10000):
+        try:
+            user_locator = self.page.locator(
+                f'//div[contains(@class,"admin-grid-item")]//p[normalize-space(text())="{username}"]'
+            )
+            user_locator.wait_for(state="visible", timeout=timeout)
+            user_locator.click()
+            print(f"✅ Clicked on user '{username}' in {description}.")
+        except Exception as e:
+            self.helper.take_screenshot(f"ClickUserFailed_{username}")
+            error_msg = f"❌ Failed to click user '{username}' in {description}: {e}"
+            print(error_msg)
+            raise AssertionError(error_msg)
+
+    # Click Save button and validate toast messages
     def click_save(self):
         """
-        Clicks the Save button and validates if a toast appears.
-        Stops test execution immediately if duplicate login ID or Employee No found.
+        Clicks the Save button and validates toast messages.
+        Ensures screenshot and proper failure logging for any invalid state.
         """
-        self.helper.click(self.btn_save, "Save button")
+        self.helper.click(self.locators.btn_save, "Save button")
 
         # Toast locator: supports both div/span structures
-        toast_locator = self.page.locator("#toast-container div, #toast-container span")
+        toast = self.page.locator("#toast-container div, #toast-container span").first
 
         try:
             # Wait for toast to appear (max 5 seconds)
-            toast_locator.first.wait_for(state="visible", timeout=5000)
-            message = toast_locator.first.inner_text().strip()
+            toast.wait_for(state="visible", timeout=5000)
+            message = " ".join(toast.inner_text().strip().split())  # Normalize whitespace
+            print(f"💬 Toast detected: '{message}'")
 
-            # Normalize whitespace to avoid gaps in logs
-            message_clean = " ".join(message.split())
-            print(f"⚠️ Toast message detected after Save: {message_clean}")
+            # --- Duplicate or error validations ---
+            if re.search(r"username\s*already\s*exists?", message, re.IGNORECASE):
+                screenshot_path = self.helper.take_screenshot("DuplicateLoginID")
+                pytest.fail(f"❌ Duplicate Login ID: {message}. Screenshot: {screenshot_path}", pytrace=False)
 
-            # --- Duplicate validations ---
-            if re.search(r"username\s*already\s*exists?", message_clean, re.IGNORECASE):
-                error_msg = f"❌ Duplicate Login ID detected — {message_clean}"
-                print(error_msg)
-                self.helper.take_screenshot("DuplicateLoginID")
-                pytest.fail(f"Duplicate Login ID: {message_clean}", pytrace=False)
+            elif re.search(r"employee\s*no\s*already\s*exists?", message, re.IGNORECASE):
+                screenshot_path = self.helper.take_screenshot("DuplicateEmployeeNo")
+                pytest.fail(f"❌ Duplicate Employee No: {message}. Screenshot: {screenshot_path}", pytrace=False)
 
-            elif re.search(r"employee\s*no\s*already\s*exists?", message_clean, re.IGNORECASE):
-                error_msg = f"❌ Duplicate Employee No detected — {message_clean}"
-                print(error_msg)
-                self.helper.take_screenshot("DuplicateEmployeeNo")
-                pytest.fail(f"Duplicate Employee No: {message_clean}", pytrace=False)
-
-            # --- Generic error message handling ---
-            elif re.search(r"(error|invalid|failed)", message_clean, re.IGNORECASE):
-                error_msg = f"❌ Error message detected — {message_clean}"
-                print(error_msg)
-                self.helper.take_screenshot("GenericErrorToast")
-                pytest.fail(f"Form submission failed: {message_clean}", pytrace=False)
+            elif re.search(r"(error|invalid|failed)", message, re.IGNORECASE):
+                screenshot_path = self.helper.take_screenshot("GenericErrorToast")
+                pytest.fail(f"❌ Form submission failed: {message}. Screenshot: {screenshot_path}", pytrace=False)
 
             else:
-                print(f"✅ Success message: {message_clean}")
+                print(f"✅ Success message: {message}")
 
         except PlaywrightTimeoutError:
-            # No toast appeared within timeout — check Save button visibility
-            if self.btn_save.is_visible():
-                print("⚠️ Something went wrong — no toast message detected and Save button is still visible.")
-                self.helper.take_screenshot("SaveButtonStillVisible")
-                pytest.fail("❌ Something went wrong — Save did not complete successfully.", pytrace=False)
+            print("⚠️ No toast appeared after clicking Save — checking Save button visibility...")
+            if self.locators.btn_save.is_visible():
+                screenshot_path = self.helper.take_screenshot("SaveButtonStillVisible")
+                pytest.fail(f"❌ Save did not complete successfully. Screenshot: {screenshot_path}", pytrace=False)
             else:
-                print("✅ No toast message detected — Save action successful (button hidden).")
+                print("✅ Save action likely successful (button hidden, no toast detected).")
 
         except Exception as e:
-            print(f"⚠️ Unexpected error while handling toast message: {e}")
-            self.helper.take_screenshot("UnexpectedToastError")
+            print(f"⚠️ Unexpected error while handling toast: {e}")
+            screenshot_path = self.helper.take_screenshot("UnexpectedToastError")
+            pytest.fail(f"⚠️ Unexpected error during Save: {e}. Screenshot: {screenshot_path}", pytrace=False)
 
-
-        except PlaywrightTimeoutError:
-            # No toast appeared within timeout — check Save button visibility
-            if self.btn_save.is_visible():
-                print("⚠️ Something went wrong — no toast message detected and Save button is still visible.")
-                pytest.fail("❌ Something went wrong — Save did not complete successfully.", pytrace=False)
-            else:
-                print("✅ No toast message detected — Save action successful (button hidden).")
-
-        except Exception as e:
-            print(f"⚠️ Unexpected error while handling toast message: {e}")
-
-
-        except PlaywrightTimeoutError:
-            # No toast appeared within timeout — assume success
-            print("✅ No toast message detected — Save action successful.")
-        except Exception as e:  # noqa: E722
-            print(f"⚠️ Unexpected error while handling toast message: {e}")
-
-    def click_all_users_radio(self):
+    # Click 'All Users' radio button to view all users
+    def click_All_Users_radio(self):
         """Clicks the 'All Users' radio button."""
-        self.radio_btn_all_users.click(force=True)
+        self.locators.radio_btn_all_users.click(force=True)
 
-    def click_active_users_radio(self):
+    # Click 'Active Users' radio button to view only active users
+    def click_Active_Users_radio_(self):
         """Clicks the 'Active Users' radio button."""
-        self.radio_btn_active_users.click(force=True)
+        self.locators.radio_btn_active_users.click(force=True)
 
+    # Click 'Update' button in Reset Password for the user
     def click_update(self):
         """
         Clicks the 'Update' button in the Reset Password dialog or section.
         """
-        print("🖱️ Clicking the 'Update' button...")
         try:
-            self.btn_update.wait_for(state="visible", timeout=5000)
-            self.helper.click(self.btn_update, "Update button")
+            self.locators.btn_update.wait_for(state="visible", timeout=5000)
+            self.helper.click(self.locators.btn_update, "Update button")
             print("✅ Clicked the 'Update' button successfully.")
         except Exception as e:
             self.helper.take_screenshot("ClickUpdateFailed")
@@ -280,24 +275,35 @@ class Admin_Add_User:
             print(error_msg)
             raise AssertionError(error_msg)
 
-    # ---------------------------------------------------------------
-    # User Verification
-    # ---------------------------------------------------------------
-    def verify_user_in_all_users(self, username: str, description: str = "'All Users list'", timeout: int = 10000):
-        """Verify that a specific user appears in the 'All Users' list."""
-        print(f"\n🔍  Verifying if user '{username}' is listed under {description}...")
+class UserVerificationAndDuplicateEmpNOLoginChecks:
+
+    def __init__(self, page: Page, helper: BaseHelper, admin_nav: AdminNavigationAndAddUser, ):
+        self.page = page
+        self.helper = helper
+        self.locators = Admin_Add_User_Locators(page)
+        self.admin_nav = admin_nav
+
+    # Verify that the created user is displayed in the All Users list.
+    def verify_user_in_all_users(self, username):
+        """
+        ✅ Searches for the user and verifies if it appears in the All Users list.
+        Takes a screenshot and raises an AssertionError if not found.
+        """
+
+        # Step 1: Locate the user in the grid
+        user_row = self.page.locator(
+            f"//div[contains(@class, 'admin-grid-item')]//p[normalize-space()='{username}']"
+        )
         try:
-            user_locator = self.page.locator(
-                f'//div[contains(@class,"admin-grid-item")]//p[normalize-space(text())="{username}"]'
-            )
-            user_locator.wait_for(state="visible", timeout=timeout)
-            print(f"✅ 🏆  User '{username}' is visible in {description}.")
-        except Exception as e:
+            user_row.wait_for(state="visible", timeout=5000)
+            print(f"✅ User '{username}' found in All Users Page.")
+        except PlaywrightTimeoutError:
             self.helper.take_screenshot(f"UserNotFound_{username}")
-            error_msg = f"❌ Test failed — User '{username}' not found in {description}: {e}"
+            error_msg = f"❌ User '{username}' not found in All Users list."
             print(error_msg)
             raise AssertionError(error_msg)
 
+    # Verify whether the user's status toggle is enabled or disabled
     def verify_user_status_toggle(self, username: str, description: str = "'User Status Toggle'", timeout: int = 10000):
         """
         Verify whether the given user's status toggle is enabled (Active) or disabled (Inactive).
@@ -322,6 +328,7 @@ class Admin_Add_User:
             print(error_msg)
             raise AssertionError(error_msg)
 
+    # To verify that the user's status toggle is disabled
     def verify_user_status_toggle_disabled(self, username: str, description: str = "'User Status Toggle'",
                                            timeout: int = 10000):
         """
@@ -350,6 +357,7 @@ class Admin_Add_User:
             print(error_msg)
             raise AssertionError(error_msg)
 
+    # Enable a disabled user's toggle (make them Active) and verify it.
     def enable_user_toggle(self, username: str, description: str = "'User Status Toggle'", timeout: int = 10000):
         """
         Enable a disabled user's toggle (make them Active) and verify it.
@@ -429,12 +437,13 @@ class Admin_Add_User:
             print(error_msg)
             raise AssertionError(error_msg)
 
-    def verify_user_in_active_list(self, username: str, timeout: int = 10000):
+    # To verify that the created user is displayed in the Active Users list.
+    def verify_user_in_Active_List(self, username: str, timeout: int = 10000):
         """
         Switches to Active Users tab and verifies that the user appears there.
         """
         print(f"👁️  Checking if '{username}' appears in Active Users list...")
-        self.click_active_users_radio()
+        self.admin_nav.click_Active_Users_radio_()
         self.page.wait_for_timeout(2000)
 
         user_locator = self.page.locator(f'//p[normalize-space()="{username}"]')
@@ -446,141 +455,153 @@ class Admin_Add_User:
             self.helper.take_screenshot(f"UserNotFoundInActive_{username}")
             raise AssertionError(f"❌ User '{username}' not found in Active Users list.")
 
-
+    # To verify duplicate login toast message
     def verify_duplicate_login_toast(self, expected_message: str):
         """
-        Click Save and check if expected duplicate toast appears.
+        Click Save and check if expected duplicate login toast appears.
         Takes screenshot if toast does not appear or message mismatch.
         """
+        self.helper.click(self.locators.btn_save, "Save button")
 
-        self.helper.click(self.btn_save, "Save button")
-
-        toast_locator = self.page.locator("#toast-container div, #toast-container span")
         try:
-            toast_locator.first.wait_for(state="visible", timeout=5000)
-            message = toast_locator.first.inner_text().strip()
+            # Wait for toast container to attach
+            self.page.locator("#toast-container").wait_for(state="attached", timeout=5000)
+
+            # Wait for the actual toast message
+            toast_locator = self.page.locator("#toast-container div, #toast-container span").first
+            toast_locator.wait_for(state="visible", timeout=10000)
+
+            message = " ".join(toast_locator.inner_text().strip().split())
             print(f"⚠️ Toast message detected: {message}")
 
             if expected_message.lower() not in message.lower():
-                # Take screenshot if message is not as expected
                 self.helper.take_screenshot(prefix="DuplicateToastMismatch")
-                pytest.fail(f"Expected message '{expected_message}', but got: '{message}'")
+                error_msg = f"❌ Expected message '{expected_message}', but got: '{message}'"
+                print(error_msg)
+                raise AssertionError(error_msg)
 
             print("✅ Negative test passed: Toast message displayed correctly")
             return True
 
         except PlaywrightTimeoutError:
-            # Take screenshot if toast did not appear
+            print("⚠️ Toast did not appear — taking screenshot.")
             self.helper.take_screenshot(prefix="ToastNotFound")
-            pytest.fail(f"❌ Expected toast message '{expected_message}' did not appear")
+            error_msg = f"❌ Expected toast message '{expected_message}' did not appear"
+            print(error_msg)
+            raise AssertionError(error_msg)
 
+        except Exception as e:
+            self.helper.take_screenshot(prefix="DuplicateToastError")
+            error_msg = f"❌ Unexpected error while verifying duplicate login toast: {e}"
+            print(error_msg)
+            raise AssertionError(error_msg)
+
+    # To verify duplicate Employee No toast message
     def verify_duplicate_emp_toast(self):
         """
         Click Save and verify 'Employee No Already Exist' toast appears.
         Takes screenshot if toast does not appear or message mismatch.
         """
-        self.helper.click(self.btn_save, "Save button")
+        self.helper.click(self.locators.btn_save, "Save button")
 
-        toast_locator = self.page.locator("#toast-container div, #toast-container span")
         try:
-            toast_locator.first.wait_for(state="visible", timeout=5000)
-            message = toast_locator.first.inner_text().strip()
+            self.page.locator("#toast-container").wait_for(state="attached", timeout=5000)
+
+            toast_locator = self.page.locator("#toast-container div, #toast-container span").first
+            toast_locator.wait_for(state="visible", timeout=10000)
+
+            message = " ".join(toast_locator.inner_text().strip().split())
             print(f"⚠️ Toast message detected: {message}")
 
             if "Employee No Already Exist" not in message:
                 self.helper.take_screenshot(prefix="DuplicateEmpToastMismatch")
-                pytest.fail(f"Expected duplicate employee number message, but got: '{message}'")
+                error_msg = f"❌ Expected duplicate employee number message, but got: '{message}'"
+                print(error_msg)
+                raise AssertionError(error_msg)
 
             print("✅ Negative test passed: Duplicate Employee Number message displayed correctly")
 
         except PlaywrightTimeoutError:
+            print("⚠️ Toast did not appear — taking screenshot.")
             self.helper.take_screenshot(prefix="DuplicateEmpToastNotFound")
-            pytest.fail("❌ Expected duplicate Employee Number toast did not appear")
-
-    def search_user(self, username: str, timeout: int = 5000):
-        """
-        Searches for a user in the user grid.
-        """
-        print(f"🔍 Searching for user '{username}'...")
-        search_box = self.page.locator("#search-user-grid-records")
-        search_box.wait_for(state="visible", timeout=timeout)
-        search_box.fill("")  # clear old value
-        search_box.fill(username)  # type username
-        self.page.keyboard.press("Enter")  # trigger search
-        self.page.wait_for_timeout(1500)  # wait for list refresh
-        print(f"✅ User '{username}' search completed.")
-
-    def click_user_in_all_users(self, username: str, description: str = "'All Users list'", timeout: int = 10000):
-        """
-        Clicks on a specific user in the 'All Users' list.
-        """
-        try:
-            user_locator = self.page.locator(
-                f'//div[contains(@class,"admin-grid-item")]//p[normalize-space(text())="{username}"]'
-            )
-            user_locator.wait_for(state="visible", timeout=timeout)
-            user_locator.click()
-            print(f"✅ Clicked on user '{username}' in {description}.")
-        except Exception as e:
-            self.helper.take_screenshot(f"ClickUserFailed_{username}")
-            error_msg = f"❌ Failed to click user '{username}' in {description}: {e}"
+            error_msg = "❌ Expected duplicate Employee Number toast did not appear"
             print(error_msg)
             raise AssertionError(error_msg)
 
-    def enter_new_password(self, password: str, timeout: int = 5000):
+        except Exception as e:
+            self.helper.take_screenshot(prefix="DuplicateEmpToastError")
+            error_msg = f"❌ Unexpected error while verifying duplicate employee toast: {e}"
+            print(error_msg)
+            raise AssertionError(error_msg)
+
+
+class PasswordGenerationAndValidation:
+    """
+    Handles password entry, policy validation, generation, and reset flows.
+    """
+    def __init__(self, page: Page, helper: BaseHelper):
+        self.page = page
+        self.helper = helper
+        self.locators = Admin_Add_User_Locators(page)
+        self.current_password: str | None = None  # Stores last used password for reuse
+
+        # Primary locators
+        self.txt_password: Locator = self.locators.txt_password
+        self.btn_update: Locator = self.locators.btn_update
+
+    # ------------------- Password Entry -------------------
+    def enter_password(self, password: str | None = None) -> str:
         """
-        Fills the 'New Password' field in the reset password form.
+        Enters a password. If not provided, dynamically generates a valid one.
+        Returns the final password.
+        """
+        if not password:
+            password = self.generate_valid_password()
+        self.helper.enter_text(self.txt_password, password, "Password textbox")
+        return password
+
+    def enter_new_password(self, password: str):
+        """
+        Enters a new password into the Reset Password form.
         """
         try:
-            password_input = self.page.locator(
-                '//label[normalize-space(text())="New Password"]/following-sibling::input[@type="password"]'
+            new_password_field = self.page.locator(
+                "//input[@type='password' and @name='reset=password-user']"
             )
-            password_input.wait_for(state="visible", timeout=timeout)
-            password_input.fill(password)
-            print(f"✅ Entered new password in the reset form.")
+            new_password_field.wait_for(state="visible", timeout=5000)
+            self.helper.enter_text(new_password_field, password, "Reset Password field")
         except Exception as e:
             self.helper.take_screenshot("EnterNewPasswordFailed")
-            error_msg = f"❌ Failed to enter new password: {e}"
-            print(error_msg)
-            raise AssertionError(error_msg)
+            raise AssertionError(f"❌ Failed to enter new password: {e}")
 
-    # ---------------- Password Helpers ----------------
+    # ------------------- Password Policy Helpers -------------------
     def get_visible_password_rules(self) -> list[str]:
         """
-        Type a temporary character to trigger validation container and
-        return all currently visible password rules.
+        Returns all currently visible password rules.
         """
         field = self.txt_password
-        field.fill("a")  # Trigger password validation container
-        self.page.wait_for_timeout(200)  # wait for DOM update
+        field.fill("a")  # trigger validation container
+        self.page.wait_for_timeout(200)
 
         rules_locator: Locator = self.page.locator("cf-password-policy-validate .password-validation ul li")
-        visible_rules: list[str] = []
+        visible_rules: list[str] = [rules_locator.nth(i).inner_text().strip()
+                                    for i in range(rules_locator.count()) if rules_locator.nth(i).is_visible()]
 
-        count = rules_locator.count()
-        for i in range(count):
-            rule = rules_locator.nth(i)
-            if rule.is_visible():
-                visible_rules.append(rule.inner_text().strip())
-
-        field.fill("")  # Optional: clear temporary character
-
+        field.fill("")  # Clear temporary char
         if visible_rules:
             print("🔍 Visible password validations:")
-            for idx, rule in enumerate(visible_rules, start=1):
+            for idx, rule in enumerate(visible_rules, 1):
                 print(f"{idx}. {rule}")
         else:
             print("✅ No visible password validations.")
-
         return visible_rules
 
     @staticmethod
     def parse_length_limits(rules: list[str]) -> tuple[int, int]:
         """
-        Parse minimum and maximum length dynamically from visible rules.
+        Parses min and max length from visible rules.
         """
-        min_len = 8
-        max_len = 20
+        min_len, max_len = 8, 20
         for rule in rules:
             r_lower = rule.lower()
             if "at least" in r_lower:
@@ -592,7 +613,7 @@ class Admin_Add_User:
     @staticmethod
     def add_char_for_rule(rules: list[str]) -> str:
         """
-        Returns a single character that satisfies one of the unmet rules.
+        Returns a character that satisfies one of the unmet rules.
         """
         for rule in rules:
             r_lower = rule.lower()
@@ -606,12 +627,12 @@ class Admin_Add_User:
                 return random.choice("!@#$%^&*")
             if "at least" in r_lower or "less than" in r_lower:
                 return random.choice(string.ascii_letters + string.digits + "!@#$%^&*")
-        # fallback
         return random.choice(string.ascii_letters + string.digits + "!@#$%^&*")
+
 
     def _rule_satisfied(self, rule: str, password: str) -> bool:
         """
-        Checks if a password satisfies a single rule.
+        Checks if password satisfies a single rule.
         """
         r_lower = rule.lower()
         if "number" in r_lower:
@@ -628,176 +649,122 @@ class Admin_Add_User:
         if "less than" in r_lower:
             max_len = int(''.join(filter(str.isdigit, rule))) - 1
             return len(password) <= max_len
-        return True  # fallback
+        return True
 
     def generate_valid_password(self) -> str:
         """
-        Generate a valid password based on the currently visible rules.
-        Prints rules and the generated password.
+        Generates a valid password based on visible rules.
         """
         password = ""
-        field = self.txt_password
         visible_rules = self.get_visible_password_rules()
         min_len, max_len = self.parse_length_limits(visible_rules)
 
-        # Keep adding characters to satisfy unmet rules
+        # Satisfy all rules
         while True:
             unmet_rules = [rule for rule in visible_rules if not self._rule_satisfied(rule, password)]
-            if not unmet_rules:
-                break
-            if len(password) >= max_len:
+            if not unmet_rules or len(password) >= max_len:
                 break
             password += self.add_char_for_rule(unmet_rules)
-            field.fill(password)
-            time.sleep(0.1)
+            self.txt_password.fill(password)
+            time.sleep(0.05)
 
         # Ensure minimum length
         while len(password) < min_len:
             password += random.choice(string.ascii_letters + string.digits + "!@#$%^&*")
-            field.fill(password)
-            time.sleep(0.05)
+            self.txt_password.fill(password)
+            time.sleep(0.02)
 
         print(f"🔑 Generated valid password: {password}")
         return password
 
-    def enter_password(self, password: str | None = None) -> str:
-        """
-        Enters the password. If not provided, dynamically generates a valid one
-        based on visible validation rules. Returns the final password for reuse.
-        """
-        if not password:
-            password = self.generate_valid_password()
-            # Fill it into the field as well
-            self.helper.enter_text(self.txt_password, password, "Password textbox")
-        else:
-            self.helper.enter_text(self.txt_password, password, "Password textbox")
-
-        return password
-
-    def enter_new_password(self, password: str):
-        """
-        Enters a new password into the 'New Password' field
-        in the Reset Password popup or section.
-        """
-        try:
-            # Locator for the 'New Password' field
-            new_password_field = self.page.locator(
-                "//input[@type='password' and @name='reset=password-user']"
-            )
-
-            new_password_field.wait_for(state="visible", timeout=5000)
-            self.helper.enter_text(new_password_field, password, "Reset Password field")
-        except Exception as e:
-            self.helper.take_screenshot("EnterNewPasswordFailed")
-            error_msg = f"❌ Failed to enter new password: {e}"
-            print(error_msg)
-            raise AssertionError(error_msg)
-
+    # ------------------- Reset Password Flow -------------------
     def reset_password_with_policy_check(self, old_password: str | None = None) -> str:
         """
-        Resets user password with policy validation:
-          1️⃣ Click reset password link
-          2️⃣ Try old password (expected to fail with policy toast)
-          3️⃣ Generate and enter a new valid password
-          4️⃣ Click Update and verify success
-
-        Returns the new valid password.
+        Resets user password:
+          1. Click reset link
+          2. Enter old password (expect policy fail toast)
+          3. Generate and enter new valid password
+          4. Click Update, validate success toast
+        Returns new password.
         """
-        print("\n🔁 Starting Reset Password Validation Flow...\n")
-
-        # --- Step 0️⃣: Resolve old password ---
         if not old_password:
-            if hasattr(self, "current_password") and self.current_password:
+            if self.current_password:
                 old_password = self.current_password
-                print(f"ℹ️ Using stored old password: {old_password}")
             else:
-                raise ValueError("❌ No old password available. Pass one or set self.current_password before calling.")
+                raise ValueError("No old password available. Pass one or set current_password.")
 
-        # --- Step 1️⃣: Click 'Reset Password' link ---
-        self.click_reset_password()
+        # Step 1: Click reset password
+        self.helper.click(self.locators.reset_password_link, "Reset Password link")
 
-        # --- Step 2️⃣: Enter same old password (expected to fail) ---
-        print(f"🧪 Attempting to reset using old password: {old_password}")
+        # Step 2: Enter old password (expect failure)
+        print(f"🧪 Trying old password: {old_password}")
         self.enter_new_password(old_password)
-        self.helper.click(self.btn_update, "Update button (old password attempt)")
+        self.helper.click(self.btn_update, "Update button (old password)")
 
-        # --- Step 3️⃣: Expect 'not met password policy' toast ---
-        toast_locator = self.page.locator("#toast-container div, #toast-container span")
+        # Step 2a: Verify policy toast
+        toast = self.page.locator("#toast-container div, #toast-container span").first
         try:
-            toast_locator.first.wait_for(state="visible", timeout=5000)
-            message = toast_locator.first.inner_text().strip()
-            print(f"⚠️ Toast message detected: {message}")
-
+            toast.wait_for(state="visible", timeout=5000)
+            message = toast.inner_text().strip()
             if "not met" in message.lower() or "policy" in message.lower():
-                print("✅ Policy validation triggered correctly — old password rejected.")
+                print(f"✅ Policy validation triggered correctly: '{message}'")
             else:
                 self.helper.take_screenshot("UnexpectedToast_ResetPassword")
-                pytest.fail(f"❌ Unexpected toast message: '{message}'", pytrace=False)
-
+                pytest.fail(f"❌ Unexpected toast after old password: {message}", pytrace=False)
         except PlaywrightTimeoutError:
             self.helper.take_screenshot("NoToast_ResetPassword")
-            pytest.fail("❌ No toast message appeared after entering old password.", pytrace=False)
+            pytest.fail("❌ No toast appeared after old password attempt.", pytrace=False)
 
-        # --- Step 4️⃣: Generate new valid password ---
-        print("\n🔑 Generating a new valid password according to policy...")
+        # Step 3: Generate new valid password
         new_password = self.generate_valid_password()
-        print(f"🧩 Retrying with valid password: {new_password}")
-
         self.enter_new_password(new_password)
 
-        # Wait for policy validation to pass (no invalid rules visible)
-        try:
-            self.page.locator("//li[contains(@class, 'invalid_Password')]").wait_for(state="hidden", timeout=5000)
-            print("✅ Password validation rules cleared — proceeding to update.")
-        except PlaywrightTimeoutError:
-            print("⚠️ Some password rules still visible, continuing with update anyway.")
-
-        # --- Step 5️⃣: Click Update and verify result ---
+        # Step 4: Click update for new password
         self.helper.click(self.btn_update, "Update button (valid password)")
-        self.page.wait_for_timeout(2000)  # short wait to allow toast to appear
+        self.page.wait_for_timeout(3000)
 
+        # Step 4a: Verify success toast
         try:
-            toast_locator.first.wait_for(state="visible", timeout=5000)
-            message = toast_locator.first.inner_text().strip()
-            print(f"📩 Toast after valid password: {message}")
-
-            success_patterns = [
-                "password updated successfully",
-                "password has been updated",
-                "password changed successfully",
-            ]
-            failure_patterns = [
-                "password not met",
-                "invalid password",
-                "failed",
-                "error",
-            ]
-
-            if any(p in message.lower() for p in success_patterns):
-                print("✅ Password updated successfully.")
-            elif any(p in message.lower() for p in failure_patterns):
-                self.helper.take_screenshot("PasswordUpdateFailed")
-                pytest.fail(f"❌ Password update failed — '{message}'", pytrace=False)
+            toast.wait_for(state="visible", timeout=5000)
+            message = toast.inner_text().strip()
+            if "password updated successfully" in message.lower():
+                print(f"✅ Password reset successful: '{message}'")
             else:
-                self.helper.take_screenshot("UnexpectedToastMessage")
-                pytest.fail(f"⚠️ Unexpected toast message: '{message}'", pytrace=False)
-
+                self.helper.take_screenshot("UnexpectedToast_NewPassword")
+                pytest.fail(f"❌ Unexpected toast after new password: {message}", pytrace=False)
         except PlaywrightTimeoutError:
-            if self.btn_update.is_visible():
-                self.helper.take_screenshot("UpdateStillVisible_AfterValidPassword")
-                pytest.fail("❌ Update button still visible — password update likely failed.", pytrace=False)
-            else:
-                print("✅ No toast appeared but Update button hidden — assuming success.")
+            self.helper.take_screenshot("NoToast_NewPassword")
+            pytest.fail("❌ No toast appeared after updating new password.", pytrace=False)
 
-        # --- Step 6️⃣: Store new password for reuse ---
         self.current_password = new_password
-        print(f"🔁 Password reset successful. Stored new password: {new_password}")
-
         return new_password
 
-    # ---------------------------------------------------------------
-    # 🔒 Invalid Password Generation & Negative Testing
-    # ---------------------------------------------------------------
+
+# ---------------- Password Utilities ----------------
+class PasswordUtils:
+    @staticmethod
+    def parse_length_limits(rules: list[str]) -> tuple[int, int]:
+        """
+        Parse minimum and maximum length dynamically from visible rules.
+        """
+        min_len = 8
+        max_len = 20
+        for rule in rules:
+            r_lower = rule.lower()
+            if "at least" in r_lower:
+                min_len = max(min_len, int(''.join(filter(str.isdigit, rule))))
+            elif "less than" in r_lower:
+                max_len = min(max_len, int(''.join(filter(str.isdigit, rule))) - 1)
+        return min_len, max_len
+
+# ---------------- Invalid Password Tests ----------------
+class InvalidPasswordTests:
+    def __init__(self, page: Page, helper: BaseHelper, txt_password_locator, btn_save_locator):
+        self.page = page
+        self.helper = helper
+        self.txt_password = txt_password_locator
+        self.btn_save = btn_save_locator
+
     def generate_invalid_passwords(self) -> list[tuple[str, str]]:
         """
         Dynamically generates invalid passwords for each visible validation rule.
@@ -805,7 +772,7 @@ class Admin_Add_User:
         """
         field = self.txt_password
 
-        # Trigger the container by typing a character
+        # Trigger container by typing a character
         field.fill("a")
         self.page.wait_for_timeout(300)
 
@@ -829,8 +796,9 @@ class Admin_Add_User:
             print(f"   {idx}. {rule}")
 
         # Determine min and max from current rules
-        min_len, max_len = Admin_Add_User.parse_length_limits(visible_rules)
+        min_len, max_len = PasswordUtils.parse_length_limits(visible_rules)
 
+        # Generate invalid passwords for each rule
         for rule in visible_rules:
             rule_lower = rule.lower()
             invalid_pwd = ""
@@ -855,9 +823,12 @@ class Admin_Add_User:
                 target_len = max(min_len, 8)
                 invalid_pwd = ''.join(random.choices(string.digits + "!@#$%^&*", k=target_len))
 
+
             elif "special" in rule_lower:
                 target_len = max(min_len, 8)
-                invalid_pwd = ''.join(random.choices(string.ascii_letters + string.digits, k=target_len))
+                invalid_pwd = random.choice(string.digits) + ''.join(
+                    random.choices(string.ascii_letters + string.digits, k=target_len - 1)
+                )
 
             else:
                 target_len = max(1, min_len - 1)
@@ -890,11 +861,11 @@ class Admin_Add_User:
             self.txt_password.fill(bad_pwd)
 
             # Wait for frontend validation to update
-            self.page.wait_for_timeout(1500)
+            self.page.wait_for_timeout(1000)
 
             # Click Save
             self.helper.click(self.btn_save, "Save button")
-            self.page.wait_for_timeout(2000)
+            self.page.wait_for_timeout(1000)
 
             try:
                 if self.btn_save.is_visible():
@@ -905,7 +876,7 @@ class Admin_Add_User:
                     pytest.fail(f"❌ Invalid password accepted for rule '{rule}'. Screenshot: {screenshot_name}",
                                 pytrace=False)
 
-            except Exception as _:
+            except Exception:
                 screenshot_name = f"CheckSaveVisibleError_{re.sub(r'[^0-9a-zA-Z]+', '_', rule)[:30]}"
                 self.helper.take_screenshot(screenshot_name)
                 pytest.fail(

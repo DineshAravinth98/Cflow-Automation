@@ -1,7 +1,7 @@
 from playwright.sync_api import Page, Locator, TimeoutError as PlaywrightTimeoutError
 from Utilities.BaseHelpers import BaseHelper
-from Locators.Admin_Add_User_Locators import Admin_Add_User_Locators
-from Locators.Common_Locators import Common_Locators
+from Locators.Locators_Admin_Add_User import Admin_Add_User_Locators
+from Locators.Locators_Common import Common_Locators
 import random
 import string
 import re
@@ -205,8 +205,8 @@ class AdminNavigationAndAddUser:
     # Click Save button and validate toast messages
     def click_save(self):
         """
-        Clicks the Save button and validates if a toast appears.
-        Stops test execution immediately if duplicate login ID or Employee No found.
+        Clicks the Save button and validates toast messages.
+        Ensures screenshot and proper failure logging for any invalid state.
         """
         self.helper.click(self.locators.btn_save, "Save button")
 
@@ -217,39 +217,36 @@ class AdminNavigationAndAddUser:
             # Wait for toast to appear (max 5 seconds)
             toast.wait_for(state="visible", timeout=5000)
             message = " ".join(toast.inner_text().strip().split())  # Normalize whitespace
-            print(f"⚠️ Toast message detected after Save: {message}")
+            print(f"💬 Toast detected: '{message}'")
 
-            # --- Duplicate validations ---
+            # --- Duplicate or error validations ---
             if re.search(r"username\s*already\s*exists?", message, re.IGNORECASE):
-                print(f"❌ Duplicate Login ID detected — {message}")
-                self.helper.take_screenshot("DuplicateLoginID")
-                pytest.fail(f"Duplicate Login ID: {message}", pytrace=False)
+                screenshot_path = self.helper.take_screenshot("DuplicateLoginID")
+                pytest.fail(f"❌ Duplicate Login ID: {message}. Screenshot: {screenshot_path}", pytrace=False)
 
             elif re.search(r"employee\s*no\s*already\s*exists?", message, re.IGNORECASE):
-                print(f"❌ Duplicate Employee No detected — {message}")
-                self.helper.take_screenshot("DuplicateEmployeeNo")
-                pytest.fail(f"Duplicate Employee No: {message}", pytrace=False)
+                screenshot_path = self.helper.take_screenshot("DuplicateEmployeeNo")
+                pytest.fail(f"❌ Duplicate Employee No: {message}. Screenshot: {screenshot_path}", pytrace=False)
 
             elif re.search(r"(error|invalid|failed)", message, re.IGNORECASE):
-                print(f"❌ Error message detected — {message}")
-                self.helper.take_screenshot("GenericErrorToast")
-                pytest.fail(f"Form submission failed: {message}", pytrace=False)
+                screenshot_path = self.helper.take_screenshot("GenericErrorToast")
+                pytest.fail(f"❌ Form submission failed: {message}. Screenshot: {screenshot_path}", pytrace=False)
 
             else:
                 print(f"✅ Success message: {message}")
 
         except PlaywrightTimeoutError:
-            # No toast appeared — check if Save button is still visible
+            print("⚠️ No toast appeared after clicking Save — checking Save button visibility...")
             if self.locators.btn_save.is_visible():
-                print("⚠️ Save button still visible, no toast detected.")
-                self.helper.take_screenshot("SaveButtonStillVisible")
-                pytest.fail("❌ Save did not complete successfully.", pytrace=False)
+                screenshot_path = self.helper.take_screenshot("SaveButtonStillVisible")
+                pytest.fail(f"❌ Save did not complete successfully. Screenshot: {screenshot_path}", pytrace=False)
             else:
-                print("✅ No toast message detected — Save action successful (button hidden).")
+                print("✅ Save action likely successful (button hidden, no toast detected).")
 
         except Exception as e:
-            print(f"⚠️ Unexpected error while handling toast message: {e}")
-            self.helper.take_screenshot("UnexpectedToastError")
+            print(f"⚠️ Unexpected error while handling toast: {e}")
+            screenshot_path = self.helper.take_screenshot("UnexpectedToastError")
+            pytest.fail(f"⚠️ Unexpected error during Save: {e}. Screenshot: {screenshot_path}", pytrace=False)
 
     # Click 'All Users' radio button to view all users
     def click_All_Users_radio(self):
@@ -457,16 +454,22 @@ class UserVerificationAndDuplicateEmpNOLoginChecks:
             self.helper.take_screenshot(f"UserNotFoundInActive_{username}")
             raise AssertionError(f"❌ User '{username}' not found in Active Users list.")
 
+    # To verify duplicate login toast message
     def verify_duplicate_login_toast(self, expected_message: str):
         """
         Click Save and check if expected duplicate login toast appears.
         Takes screenshot if toast does not appear or message mismatch.
         """
-        try:
-            self.helper.click(self.locators.btn_save, "Save button")
+        self.helper.click(self.locators.btn_save, "Save button")
 
+        try:
+            # Wait for toast container to attach
+            self.page.locator("#toast-container").wait_for(state="attached", timeout=5000)
+
+            # Wait for the actual toast message
             toast_locator = self.page.locator("#toast-container div, #toast-container span").first
-            toast_locator.wait_for(state="visible", timeout=5000)
+            toast_locator.wait_for(state="visible", timeout=10000)
+
             message = " ".join(toast_locator.inner_text().strip().split())
             print(f"⚠️ Toast message detected: {message}")
 
@@ -480,6 +483,7 @@ class UserVerificationAndDuplicateEmpNOLoginChecks:
             return True
 
         except PlaywrightTimeoutError:
+            print("⚠️ Toast did not appear — taking screenshot.")
             self.helper.take_screenshot(prefix="ToastNotFound")
             error_msg = f"❌ Expected toast message '{expected_message}' did not appear"
             print(error_msg)
@@ -491,16 +495,20 @@ class UserVerificationAndDuplicateEmpNOLoginChecks:
             print(error_msg)
             raise AssertionError(error_msg)
 
+    # To verify duplicate Employee No toast message
     def verify_duplicate_emp_toast(self):
         """
         Click Save and verify 'Employee No Already Exist' toast appears.
         Takes screenshot if toast does not appear or message mismatch.
         """
+        self.helper.click(self.locators.btn_save, "Save button")
+
         try:
-            self.helper.click(self.locators.btn_save, "Save button")
+            self.page.locator("#toast-container").wait_for(state="attached", timeout=5000)
 
             toast_locator = self.page.locator("#toast-container div, #toast-container span").first
-            toast_locator.wait_for(state="visible", timeout=5000)
+            toast_locator.wait_for(state="visible", timeout=10000)
+
             message = " ".join(toast_locator.inner_text().strip().split())
             print(f"⚠️ Toast message detected: {message}")
 
@@ -513,6 +521,7 @@ class UserVerificationAndDuplicateEmpNOLoginChecks:
             print("✅ Negative test passed: Duplicate Employee Number message displayed correctly")
 
         except PlaywrightTimeoutError:
+            print("⚠️ Toast did not appear — taking screenshot.")
             self.helper.take_screenshot(prefix="DuplicateEmpToastNotFound")
             error_msg = "❌ Expected duplicate Employee Number toast did not appear"
             print(error_msg)
@@ -813,9 +822,12 @@ class InvalidPasswordTests:
                 target_len = max(min_len, 8)
                 invalid_pwd = ''.join(random.choices(string.digits + "!@#$%^&*", k=target_len))
 
+
             elif "special" in rule_lower:
                 target_len = max(min_len, 8)
-                invalid_pwd = ''.join(random.choices(string.ascii_letters + string.digits, k=target_len))
+                invalid_pwd = random.choice(string.digits) + ''.join(
+                    random.choices(string.ascii_letters + string.digits, k=target_len - 1)
+                )
 
             else:
                 target_len = max(1, min_len - 1)

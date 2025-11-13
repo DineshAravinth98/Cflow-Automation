@@ -1,12 +1,14 @@
 import pytest
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from PageObjects.C import (
+from PageObjects.B_Admin_Add_user import (
     AdminNavigationAndAddUser,
     UserVerificationAndDuplicateEmpNOLoginChecks,
     PasswordGenerationAndValidation,
     InvalidPasswordTests
 )
 from Utilities.BaseHelpers import BaseHelper
+from Locators.Locators_Admin_Add_User import Admin_Add_User_Locators
+
 
 
 class Test_002_Admin_Add_User_Negative_cases:
@@ -73,7 +75,7 @@ class Test_002_Admin_Add_User_Negative_cases:
         admin_nav.enter_department("QA")
         admin_nav.enter_email("existingemp@yopmail.com")
         admin_nav.enter_login_id("unique_login_id_00552")
-        password_util.enter_password()
+        password_util.enter_password("123")
 
         duplicate_emp_no = "E02"  # 🔁 Known duplicate
         admin_nav.enter_employee_number(duplicate_emp_no)
@@ -83,7 +85,6 @@ class Test_002_Admin_Add_User_Negative_cases:
         # Verify duplicate Employee toast
         user_verif.verify_duplicate_emp_toast()
 
-
     def test_add_user_with_invalid_passwords(self, login):
         """
         🚨 Negative Test: Dynamically test invalid passwords for each password rule.
@@ -92,20 +93,29 @@ class Test_002_Admin_Add_User_Negative_cases:
         page = login
         helper = BaseHelper(page)
         admin_nav = AdminNavigationAndAddUser(page, helper)
-        password_util = InvalidPasswordTests(page, helper)
+        locators = Admin_Add_User_Locators(page)
+
+        # Initialize InvalidPasswordTests with required locators
+        password_util = InvalidPasswordTests(
+            page,
+            helper,
+            txt_password_locator=locators.txt_password,
+            btn_save_locator=locators.btn_save
+        )
 
         print("🚨 Starting Negative Test: Invalid Password Validations")
         page.reload()
+        page.wait_for_timeout(1000)
 
-        # Navigate to Admin
+        # Navigate to Admin page
         admin_nav.go_to_admin()
         page.wait_for_timeout(1000)
 
-        # Add User
+        # Open Add User form
         admin_nav.click_add_user()
         page.wait_for_timeout(2000)
 
-        # Fill required fields (password will be tested dynamically)
+        # Fill mandatory fields (password will be tested dynamically)
         admin_nav.enter_name("Invalid_Password_User")
         admin_nav.enter_department("QA")
         admin_nav.enter_email()
@@ -114,7 +124,7 @@ class Test_002_Admin_Add_User_Negative_cases:
         admin_nav.select_role(["User"])
         admin_nav.enter_whatsapp_number(country_code="91", whatsapp_no="9876543210")
 
-        # Dynamically test invalid passwords based on visible rules
+        # Run dynamic invalid password tests
         password_util.test_invalid_passwords()
 
         print("✅ Completed all invalid password validation tests successfully.")
