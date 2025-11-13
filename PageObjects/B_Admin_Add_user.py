@@ -79,6 +79,7 @@ class AdminNavigationAndAddUser:
         if not emp_no:
             emp_no = self.random_employee_number()
         self.helper.enter_text(self.locators.txt_employee_number, emp_no, "Employee Number textbox")
+        return emp_no
 
     # Select Roles from dropdown
     def select_role(self, roles):
@@ -86,24 +87,40 @@ class AdminNavigationAndAddUser:
             roles = [roles]
 
         print(f"🎯 Selecting roles: {roles}")
-        self.helper.click(self.locators.dropdown_role, "Roles dropdown")
-        self.page.wait_for_timeout(1000)
 
         for role in roles:
             print(f"➡ Selecting role: '{role}'")
-            role_option = self.page.get_by_text(role, exact=True)
+
+            # Step 1️⃣ - Open dropdown before *each* selection
+            self.helper.click(self.locators.dropdown_role, "Roles dropdown (open before selecting)")
+            self.page.wait_for_timeout(500)
+
+            # Step 2️⃣ - Wait for dropdown to appear
             try:
-                if role_option.count() > 0:
-                    self.helper.click(role_option, f"Role option: {role}")
-                    print(f"✅ Selected role: '{role}'")
-                else:
-                    print(f"⚠️ Role '{role}' not found.")
-                    self.helper.take_screenshot(prefix=f"RoleNotFound_{role}")
-                    pytest.fail(f"❌ Role '{role}' not found in dropdown")
+                self.page.wait_for_selector("//div[@role='listbox']", state="visible", timeout=5000)
+            except Exception:
+                self.helper.take_screenshot(prefix="DropdownNotVisible")
+                pytest.fail("❌ Role dropdown not visible after clicking")
+
+            # Step 3️⃣ - Find and click the role
+            role_option_xpath = f"//span[contains(@class,'ng-option-label') and normalize-space(text())='{role}']"
+            role_option = self.page.locator(role_option_xpath)
+
+            try:
+                self.page.wait_for_selector(role_option_xpath, state="visible", timeout=5000)
+                role_option.first.click()
+                print(f"✅ Selected role: '{role}'")
             except Exception as e:
-                print(f"❌ Error selecting role '{role}': {e}")
                 self.helper.take_screenshot(prefix=f"ErrorSelecting_{role}")
-                pytest.fail(f"❌ Exception occurred while selecting role '{role}': {e}")
+                print(f"❌ Error selecting role '{role}': {e}")
+
+                # Debug dropdown content if fails
+                dropdown_texts = self.page.locator("//div[@role='listbox']").all_inner_texts()
+                print(f"🧾 Dropdown visible options: {dropdown_texts}")
+
+                pytest.fail(f"❌ Failed to select role '{role}': {e}")
+
+            # Step 4️⃣ - Small delay for safety
             self.page.wait_for_timeout(500)
 
     # Generate whatsapp number with country code
@@ -906,3 +923,66 @@ class InvalidPasswordTests:
             max_len = int(''.join(filter(str.isdigit, rule))) - 1
             return len(password) <= max_len
         return True
+
+class VerifyUserInEmployeesLookup:
+
+    # Centralized locators
+    MENU_EMPLOYEE_LOOKUP = "//span[normalize-space()='Employee Lookup']"
+    TABLE_FIRST_ROW = "//table//tbody/tr[1]"
+
+    def __init__(self, page: Page, helper: BaseHelper):
+        self.page = page
+        self.helper = helper
+        self.locators = Admin_Add_User_Locators(page)
+        self.common = Common_Locators(page)
+
+    # Navigate to Lookup Page
+    def go_to_lookup(self):
+        # Call the method from Common_Locators
+        self.common.navigate_to_lookup()
+
+    # Click Employees Lookup
+    def employees_lookup(self):
+        self.helper.click(self.locators.click_employees_lookup, "Employees Lookup")
+
+    # Verify latest employee record
+    def verify_latest_employee_record(self, expected_data: dict):
+        print("🧭 Fetching latest employee record from lookup table...")
+
+        # Wait until the first row is visible
+        self.page.wait_for_selector(self.TABLE_FIRST_ROW)
+        latest_row = self.page.locator(self.TABLE_FIRST_ROW)
+
+        # Extract all useful details (adjust td index if table structure differs)
+        actual_data = {
+            "ID": latest_row.locator("td:nth-child(3)").inner_text().strip(),
+            "Employee No": latest_row.locator("td:nth-child(4)").inner_text().strip(),
+            "Employee Name": latest_row.locator("td:nth-child(5)").inner_text().strip(),
+            "Login ID": latest_row.locator("td:nth-child(6)").inner_text().strip(),
+            "Email ID": latest_row.locator("td:nth-child(7)").inner_text().strip(),
+            "Department": latest_row.locator("td:nth-child(8)").inner_text().strip(),
+            "Created By": latest_row.locator("td:nth-child(9)").inner_text().strip(),
+            "Created Date": latest_row.locator("td:nth-child(10)").inner_text().strip(),
+            "Updated By": latest_row.locator("td:nth-child(11)").inner_text().strip(),
+            "Updated Date": latest_row.locator("td:nth-child(12)").inner_text().strip(),
+        }
+
+        # Print the complete record
+        print("\n🧾 Employee Record (Full Details):")
+        for key, value in actual_data.items():
+            print(f"   {key}: {value}")
+
+        # Compare only required fields
+        print("\n📊 Comparing Employee Record Details:")
+        for key, expected_value in expected_data.items():
+            actual_value = actual_data.get(key)
+            if actual_value != expected_value:
+                self.helper.take_screenshot(prefix=f"Mismatch_{key}")
+                print(f"❌ {key}: Expected '{expected_value}', Got '{actual_value}'")
+                raise AssertionError(
+                    f"Mismatch in '{key}': expected '{expected_value}', got '{actual_value}'"
+                )
+            else:
+                print(f"✅ {key} matches: '{actual_value}'")
+
+        print("\n🎯 All employee details correctly reflected in Employee Lookup table.")

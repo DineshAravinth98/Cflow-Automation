@@ -87,3 +87,11 @@ class Admin_Add_User_Locators:
         # 🔹 Search
         # Search bar for filtering users in the user list/grid
         self.search_box = page.locator("#search-user-grid-records")
+
+
+        #Lookup page locators
+        # Click the employees lookup
+        self.click_employees_lookup = page.locator("//a[.//p[normalize-space(text())='Employees']]")
+
+
+

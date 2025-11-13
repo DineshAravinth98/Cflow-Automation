@@ -2,16 +2,19 @@ import pytest
 from PageObjects.B_Admin_Add_user import (
     AdminNavigationAndAddUser,
     UserVerificationAndDuplicateEmpNOLoginChecks,
-    PasswordGenerationAndValidation
+    PasswordGenerationAndValidation,
+    VerifyUserInEmployeesLookup
 )
 from Utilities.BaseHelpers import BaseHelper
 
 
 class Test_01AdminAddUserPositiveCases:
     """✅ Admin Add User Positive Test Suite"""
-    created_username = None  # for first user (active)
+    created_username = None       # for first user (active)
     created_password = None
-    disabled_username = None  # for second user (disabled)
+    created_emp_no = None
+    created_login_id = None       # 👈 new variable for login ID
+    disabled_username = None      # for second user (disabled)
 
     def test_add_user_with_active_status(self, login):
         page = login
@@ -34,9 +37,12 @@ class Test_01AdminAddUserPositiveCases:
         username = admin_nav.enter_name()
         admin_nav.enter_department("QA")
         admin_nav.enter_email("dinesh123@yopmail.com")
-        admin_nav.enter_login_id()
+
+        # Capture the randomly generated Login ID
+        login_id = admin_nav.enter_login_id()
+
         old_password = password_util.enter_password()
-        admin_nav.enter_employee_number()
+        emp_no = admin_nav.enter_employee_number()
         admin_nav.select_role(["User", "Admin"])
         admin_nav.enter_whatsapp_number(country_code="91", whatsapp_no="9988776655")
         admin_nav.enable_send_welcome_mail()
@@ -47,9 +53,11 @@ class Test_01AdminAddUserPositiveCases:
         page.wait_for_timeout(2000)
         print(f"✅ User '{username}' added successfully with Active status")
 
-        # Store username & password for next test
+        # Store user details for next test
         Test_01AdminAddUserPositiveCases.created_username = username
         Test_01AdminAddUserPositiveCases.created_password = old_password
+        Test_01AdminAddUserPositiveCases.created_emp_no = emp_no
+        Test_01AdminAddUserPositiveCases.created_login_id = login_id   # 👈 store login ID
 
         # Verify in All Users
         admin_nav.click_All_Users_radio()
@@ -58,6 +66,42 @@ class Test_01AdminAddUserPositiveCases:
         user_verif.verify_user_in_all_users(username)
         status = user_verif.verify_user_status_toggle(username)
         print(f"🎯 Verified '{username}' appears with status: {status}")
+
+    def test_verify_user_in_employee_lookup(self, login):
+
+        page = login
+        helper = BaseHelper(page)
+        emp_lookup_verif = VerifyUserInEmployeesLookup(page, helper)
+
+        username = Test_01AdminAddUserPositiveCases.created_username
+        emp_no = Test_01AdminAddUserPositiveCases.created_emp_no
+        login_id = Test_01AdminAddUserPositiveCases.created_login_id  # 👈 fetch stored login ID
+
+        if not username or not emp_no or not login_id:
+            pytest.skip("⚠ No created user details from previous test — skipping lookup verification.")
+
+        expected_data = {
+            "Employee No": emp_no,
+            "Employee Name": username,
+            "Login ID": login_id,       # 👈 updated
+            "Email ID": "dinesh123@yopmail.com",
+            "Department": "QA"
+        }
+
+        print(f"\n🔍 Verifying Employee Lookup entry for user: {username}")
+
+        # Step 1️⃣ - Navigate to Lookup section
+        emp_lookup_verif.go_to_lookup()
+        page.wait_for_timeout(1000)
+
+        # Step 2️⃣ - Click Employees Lookup tab
+        emp_lookup_verif.employees_lookup()
+        page.wait_for_timeout(2000)
+
+        # Step 3️⃣ - Verify the latest employee record
+        emp_lookup_verif.verify_latest_employee_record(expected_data)
+
+
 
     def test_reset_password_of_created_user(self, login):
 
@@ -73,7 +117,7 @@ class Test_01AdminAddUserPositiveCases:
 
         print("\n🚀 Resetting password for created user")
 
-        page.reload()
+        admin_nav.go_to_admin()
         page.wait_for_timeout(1000)
         admin_nav.click_All_Users_radio()
         admin_nav.search_user(username, timeout=2000)
