@@ -13,7 +13,7 @@ from Utilities.ReadProperties import ReadConfig
 from conftest import playwright  # global sync_playwright().start() instance
 
 
-def test_verify_new_user_login_standalone():
+def test_TC07_verify_new_user_login_standalone():
     # -------------------------- MAIN BROWSER → Create User --------------------------
     browser = playwright.chromium.launch(headless=False)
     context = browser.new_context(viewport={"width": 1470, "height": 720})

@@ -79,6 +79,22 @@ TC06 | test_verify_imported_users
     Employee Number
     Department
 
+TC07 | test_TC07_verify_new_user_login_standalone
+-------------------------------------------------
+1.Log in to the application.
+2.Click on the Admin side navigation link.
+3.Click on the Add User button.
+4.Enter the user details.
+5.Click on the Save button.
+6.Click on the All Users button.
+7.Search the created User.
+8.Verify that the newly created user is visible in the All Users list.
+9.Check whether the user's status is Active
+10.Close the browser
+11.Open a New Browser
+12.Login the newly created user credentials
+13.Verify that the user is able to login successfully and lands on the Dashboard page.
+
 ------------------------------ Negative Cases Covered -----------------------------------------
 
 TC01 | test_TC01_add_user_with_duplicate_login_id
