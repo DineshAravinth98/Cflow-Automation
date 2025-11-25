@@ -13,7 +13,7 @@ class BaseHelper:
     # ---------------------------------------------------------------
     def take_screenshot(self, prefix="Error"):
         os.makedirs(self.screenshot_dir, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        timestamp = datetime.now().strftime("%d-%m-%Y_%H-%M-%S")
         screenshot_path = os.path.join(self.screenshot_dir, f"{prefix}_{timestamp}.png")
         self.page.screenshot(path=screenshot_path)
         print(f"📸 Screenshot saved at: {screenshot_path}")

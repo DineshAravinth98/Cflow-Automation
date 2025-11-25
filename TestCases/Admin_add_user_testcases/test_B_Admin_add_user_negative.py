@@ -13,7 +13,7 @@ from Locators.Locators_Admin_Add_User import Admin_Add_User_Locators
 class Test_002_Admin_Add_User_Negative_cases:
 
 
-    def test_TC01_add_user_with_duplicate_login_id(self, login):
+    def test_TC01_add_user_with_duplicate_login_id(self, login,page):
         """
         🚨 Negative Test: Verify 'Username Already Exist' toast for duplicate Login ID
         """
@@ -49,7 +49,7 @@ class Test_002_Admin_Add_User_Negative_cases:
         user_verif.verify_duplicate_login_toast("Username Already Exist")
 
 
-    def test_TC02_add_user_with_duplicate_emp_no(self, login):
+    def test_TC02_add_user_with_duplicate_emp_no(self, login,page):
         """
         🚨 Negative Test: Verify 'Employee No Already Exist' toast for duplicate Employee No
         """
@@ -85,7 +85,7 @@ class Test_002_Admin_Add_User_Negative_cases:
         user_verif.verify_duplicate_emp_toast()
 
 
-    def test_TC03_add_user_with_invalid_passwords(self, login):
+    def test_TC03_add_user_with_invalid_passwords(self, login,page):
         """
         🚨 Negative Test: Dynamically test invalid passwords for each password rule.
         Save button must remain visible (form not submitted) for all invalid passwords.

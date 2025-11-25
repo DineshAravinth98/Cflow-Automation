@@ -24,7 +24,7 @@ class Test_01AdminAddUserPositiveCases:
 
 
     @pytest.mark.order(1)
-    def test_TC01_add_user_with_active_status(self, login):
+    def test_TC01_add_user_with_active_status(self,page, login):
         page = login
         helper = BaseHelper(page)
         admin_nav = AdminNavigationAndAddUser(page, helper)
@@ -76,7 +76,7 @@ class Test_01AdminAddUserPositiveCases:
 
 
     @pytest.mark.order(2)
-    def test_TC02_verify_user_in_employee_lookup(self, login):
+    def test_TC02_verify_user_in_employee_lookup(self,page, login):
 
         page = login
         helper = BaseHelper(page)
@@ -112,7 +112,7 @@ class Test_01AdminAddUserPositiveCases:
 
 
     @pytest.mark.order(3)
-    def test_TC03_reset_password_of_created_user(self, login):
+    def test_TC03_reset_password_of_created_user(self, login,page):
 
         page = login
         helper = BaseHelper(page)
@@ -136,7 +136,7 @@ class Test_01AdminAddUserPositiveCases:
         password_util.reset_password_with_policy_check(old_password)
 
 
-    def test_TC04_add_user_with_disabled_status(self, login):
+    def test_TC04_add_user_with_disabled_status(self, login, page):
         page = login
         helper = BaseHelper(page)
         admin_nav = AdminNavigationAndAddUser(page, helper)
@@ -191,7 +191,7 @@ class Test_01AdminAddUserPositiveCases:
         Test_01AdminAddUserPositiveCases.disabled_username = username
 
 
-    def test_TC05_verify_imported_users(self,login):
+    def test_TC05_verify_imported_users(self,login, page):
 
         # --- Test Data ---
         file_path = "TestData/User_Import.xlsx"
