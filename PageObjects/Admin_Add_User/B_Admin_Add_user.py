@@ -125,9 +125,22 @@ class AdminNavigationAndAddUser:
             # Step 4️⃣ - Small delay for safety
             self.page.wait_for_timeout(500)
 
+    def select_country_code(self, country_code):
+        # Click the dropdown
+        self.helper.click(self.locators.country_code_dropdown, f"Country code dropdown ({country_code})")
+
+        # Wait for the panel to appear
+        dropdown_panel = self.page.locator(self.locators.country_code_panel)
+        dropdown_panel.wait_for(state="visible", timeout=10000)
+
+        # Click the option directly
+        option = dropdown_panel.locator(f"div.ng-option >> text='{country_code}'")
+        option.wait_for(state="visible", timeout=5000)
+        option.click()
+
+        print(f"✅ Clicked: Country code dropdown, selected: {country_code}")
     # Generate whatsapp number with country code
-    def enter_whatsapp_number(self, country_code="91", whatsapp_no="9876543210"):
-        self.helper.enter_text(self.locators.country_code_input, country_code, "Country code input")
+    def enter_whatsapp_number(self, whatsapp_no="9876543210"):
         self.helper.enter_text(self.locators.whatsapp_input, whatsapp_no, "WhatsApp number input")
 
 
@@ -706,12 +719,11 @@ class PasswordGenerationAndValidation:
         self.helper.click(self.btn_update, "Update button (old password)")
         self.page.wait_for_timeout(3000)
 
-        # Step 2a: Verify policy toast
         toast = self.page.locator("#toast-container div, #toast-container span").first
         try:
             toast.wait_for(state="visible", timeout=5000)
             message = toast.inner_text().strip()
-            if "not met" in message.lower() or "policy" in message.lower():
+            if "old password" in message.lower() or "create a new password" in message.lower():
                 print(f"✅ Policy validation triggered correctly: '{message}'")
             else:
                 self.helper.take_screenshot("UnexpectedToast_ResetPassword")

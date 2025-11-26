@@ -12,7 +12,6 @@ from Locators.Locators_Admin_Add_User import Admin_Add_User_Locators
 
 class Test_002_Admin_Add_User_Negative_cases:
 
-
     def test_TC01_add_user_with_duplicate_login_id(self, login,page):
         """
         🚨 Negative Test: Verify 'Username Already Exist' toast for duplicate Login ID
@@ -43,7 +42,8 @@ class Test_002_Admin_Add_User_Negative_cases:
         password_util.enter_password()
         admin_nav.enter_employee_number("123466")
         admin_nav.select_role(["User"])
-        admin_nav.enter_whatsapp_number(country_code="91", whatsapp_no="9988776655")
+        admin_nav.select_country_code("+91")
+        admin_nav.enter_whatsapp_number(whatsapp_no="9988776655")
 
         # Verify duplicate login toast
         user_verif.verify_duplicate_login_toast("Username Already Exist")
@@ -79,7 +79,8 @@ class Test_002_Admin_Add_User_Negative_cases:
         duplicate_emp_no = "E02"  # 🔁 Known duplicate
         admin_nav.enter_employee_number(duplicate_emp_no)
         admin_nav.select_role(["User"])
-        admin_nav.enter_whatsapp_number(country_code="91", whatsapp_no="9988776655")
+        admin_nav.select_country_code("+91")
+        admin_nav.enter_whatsapp_number(whatsapp_no="9988776655")
 
         # Verify duplicate Employee toast
         user_verif.verify_duplicate_emp_toast()
@@ -121,7 +122,8 @@ class Test_002_Admin_Add_User_Negative_cases:
         admin_nav.enter_login_id()
         admin_nav.enter_employee_number()
         admin_nav.select_role(["User"])
-        admin_nav.enter_whatsapp_number(country_code="91", whatsapp_no="9876543210")
+        admin_nav.select_country_code("+91")
+        admin_nav.enter_whatsapp_number(whatsapp_no="9988776655")
 
         # Run dynamic invalid password tests
         password_util.test_invalid_passwords()

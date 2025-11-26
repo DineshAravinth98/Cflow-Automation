@@ -55,7 +55,8 @@ class Admin_Add_User_Locators:
 
         # 🔹 Phone Number Fields
         # Country code input field (e.g., +91)
-        self.country_code_input = page.locator('//div[contains(@class, "d-flex")]/input[@placeholder="+91"]')
+        self.country_code_dropdown = "ng-select[formcontrolname='countryCode']"
+        self.country_code_panel = "ng-dropdown-panel.ng-dropdown-panel.ng-star-inserted"
 
         # WhatsApp number input field for the user
         self.whatsapp_input = page.locator('//div[contains(@class, "d-flex")]/input[@formcontrolname="whatsappNo"]')

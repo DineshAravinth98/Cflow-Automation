@@ -52,7 +52,8 @@ class Test_01AdminAddUserPositiveCases:
         old_password = password_util.enter_password()
         emp_no = admin_nav.enter_employee_number()
         admin_nav.select_role(["User", "Admin"])
-        admin_nav.enter_whatsapp_number(country_code="91", whatsapp_no="9988776655")
+        admin_nav.select_country_code("+91")
+        admin_nav.enter_whatsapp_number(whatsapp_no="9988776655")
         admin_nav.enable_send_welcome_mail()
         page.wait_for_timeout(500)
 
@@ -160,7 +161,8 @@ class Test_01AdminAddUserPositiveCases:
         password_util.enter_password()
         admin_nav.enter_employee_number()
         admin_nav.select_role(["User"])
-        admin_nav.enter_whatsapp_number(country_code="91", whatsapp_no="9988776655")
+        admin_nav.select_country_code("+91")
+        admin_nav.enter_whatsapp_number(whatsapp_no="9988776655")
 
         # Disable status and enable welcome mail
         admin_nav.disable_user_status_toggle()
@@ -242,6 +244,8 @@ class Test_01AdminAddUserPositiveCases:
         admin_nav.enter_email("autotest@yopmail.com")
         admin_nav.enter_employee_number()
         admin_nav.select_role(["User"])
+        admin_nav.select_country_code("+91")
+        admin_nav.enter_whatsapp_number(whatsapp_no="9988776655")
         admin_nav.enable_send_welcome_mail()
         admin_nav.click_save()
         page.wait_for_timeout(2000)
