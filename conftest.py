@@ -4,8 +4,7 @@ from PageObjects.Login_Page.A_loginpage import LoginPage
 from Utilities.ReadProperties import ReadConfig
 from Utilities.BaseHelpers import BaseHelper
 from datetime import datetime
-from pytest_html import extras
-
+# from pytest_html import extras
 import os
 import re
 
